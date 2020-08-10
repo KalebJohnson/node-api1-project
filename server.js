@@ -17,7 +17,12 @@ server.get("/lol", (req, res) => {
 server.get("/users", (req, res) => {
 
 	const users = db.getUsers()
-	res.json(users)
+
+	if(users){
+	res.status(200).json(users)
+} else {
+		res.status(500).json({ message: "users info not retrieved" })
+	}
 })
 
 server.get("/users/:id", (req, res) => {
@@ -28,45 +33,47 @@ server.get("/users/:id", (req, res) => {
 
 
 	if (user) {
-		res.json(user)
+		res.status(200).json(user)
+	} else if (!user) {
+		res.status(404).json({ message: "User not found, are you sure that ID exists?" })
 	} else {
-		res.status(404).json({ message: "User not found" })
+		res.status(500).json({ errorMessage: "Post failed" });
 	}
 })
 ///////////////////////////////////////////////////////////////////////// (eyes too tired to read for the put request, coffee NOT working) /////////////////////////////////
-server.put('/api/users/:id', (req, res) => {
+server.put("/users/:id", (req, res) => {
     const id = req.params.id;
-    const userInfo = req.body;
-    const { name, bio } = req.body;
+	const changes = req.body;
+	let users = db.updateUser
+	let index = users.findIndex(users => users.id === id)
 
-    if (name && bio) {
-        db.update(id, userInfo)
-            .then(user => {
-                if (user) {
-                    res.status(200).json({ success: true, user });
-                } else {
-                    res.status(404).json({ errorMessage: "User of said ID, does not exist." });
-                }
-            })
-            .catch(err => {
-                res.status(500).json({ errorMessage: "User data modification failed" });
-            });
-    } else {
-        res.status(400).json({ errorMessage: "User name and bio REQUIRED" });
-    }
+	if (index !== -1) {
+		users[index] = changes;
+		res.status(200).json(users[index])
+	} else {
+		res.status(404).json({message:"user not found"})
+	}
+
 });
-
-
 
 
 server.post("/users", (req, res) => {
 
 	const newUser = db.createUser({
 		name: req.body.name,
+		bio: req.body.bio
 	})
 
-	res.status(201).json(newUser)
+	if(newUser){
+	res.status(201).json({ newUser })
+	} else if (!newUser) {
+		res.status(400).json({ errorMessage: "User name and bio REQUIRED" });
+	} else {
+		res.status(500).json({ errorMessage: "Post failed" });
+	}
 })
+
+
 
 server.delete("/users/:id", (req, res) => {
 	const user = db.getUserById(req.params.id)
@@ -76,10 +83,12 @@ server.delete("/users/:id", (req, res) => {
 		db.deleteUser(req.params.id)
 
 		res.status(204).end()
-	} else {
+	} else if (!user) {
 		res.status(404).json({
 			message: "User not found",
 		})
+	} else {
+		res.status(500).json({ message: "error"})
 	}
 })
 
